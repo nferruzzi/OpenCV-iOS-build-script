@@ -30,6 +30,7 @@ BUILD="`cd \"$D\" 2>/dev/null && pwd || echo \"$D\"`/$B"
 INTERMEDIATE=$BUILD/tmp
 IOS_DEV_BUILD_DIR=$INTERMEDIATE/ios-dev-build
 IOS_SIM_BUILD_DIR=$INTERMEDIATE/ios-sim-build
+FRAMEWORK_NAME=OpenCV
 
 ################################################################################
 # Clear the old build and recompile the new one.
@@ -111,6 +112,26 @@ rm -rf $BUILD/include
 mv $INTERMEDIATE/install/include $BUILD/include
 
 ################################################################################
+# Create iOS framework
+FRAMEWORK_DIR="$BUILD/$FRAMEWORK_NAME.framework"
+rm -rf "$FRAMEWORK_DIR"
+mkdir -p "$FRAMEWORK_DIR"
+
+# Combine all libraries into one - required for framework
+libtool -o "$FRAMEWORK_DIR/$FRAMEWORK_NAME" $BUILD/lib/Release/*.a 2> /dev/null
+
+# Copy public headers into framework
+cp -R "$BUILD/include" "$FRAMEWORK_DIR/Headers"
+
+# Fix-up header files to use standard framework-style include paths
+for FILE in `find "$FRAMEWORK_DIR/Headers" -type f`
+do
+	sed -i "" 's:#include "opencv2/\(.*\)":#include <OpenCV/opencv2/\1>:' "$FILE"
+done
+
+################################################################################
 # Final cleanup
 #rm -rf $INTERMEDIATE
 echo "All is done"
+
+
